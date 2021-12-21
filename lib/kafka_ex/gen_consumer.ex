@@ -945,7 +945,7 @@ defmodule KafkaEx.GenConsumer do
               %{partition: ^partition, error_code: :no_error, offset: [offset]}
             ]
           }
-        ] = KafkaEx.earliest_offset(topic, partition, worker_name)
+        ] = load_offsets_for_unknown_topic_or_partition(topic, partition, worker_name, state.auto_offset_reset)
 
         %State{
           state
@@ -954,5 +954,14 @@ defmodule KafkaEx.GenConsumer do
             acked_offset: offset
         }
     end
+  end
+
+  # Start reading from the very beginning only if auto_offset_reset is set to :earliest
+  defp load_offsets_for_unknown_topic_or_partition(topic, partition, worker_name, :earliest) do
+    KafkaEx.earliest_offset(topic, partition, worker_name)
+  end
+
+  defp load_offsets_for_unknown_topic_or_partition(topic, partition, worker_name, _) do
+    KafkaEx.latest_offset(topic, partition, worker_name)
   end
 end
