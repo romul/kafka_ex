@@ -63,17 +63,14 @@ defmodule KafkaEx.DefaultPartitioner do
           metadata :: %MetadataResponse{},
           key :: binary
         ) :: %ProduceRequest{}
-  defp assign_partition_with_key(
-         %ProduceRequest{topic: topic} = request,
-         metadata,
-         key
-       ) do
-    hash = Murmur.umurmur2(key)
+  defp assign_partition_with_key(%ProduceRequest{topic: topic} = request, metadata, key) do
+    partition_id = case metadata |> MetadataResponse.partitions_for_topic(topic) |> length() do
+      0 ->
+        0
+      partitions_count ->
+        key |> Murmur.umurmur2() |> rem(partitions_count)
+    end
 
-    partitions_count =
-      metadata |> MetadataResponse.partitions_for_topic(topic) |> length()
-
-    partition_id = rem(hash, partitions_count)
     %{request | partition: partition_id}
   end
 end
